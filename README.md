@@ -301,9 +301,8 @@ npm run e2e
 - All transactions are on testnet - no real value is at risk
 - Event fetching is limited to recent events (last ~1.5 hours) for performance
 
-## 📄 License
+Deployed project on Vercel: https://token-manager-iota.vercel.app/
 
-This project is part of a coding challenge.
 
 ---
 
