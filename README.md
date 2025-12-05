@@ -12,19 +12,13 @@ A React/Next.js application for managing ERC20 tokens (DAI and USDC) on the Sepo
 
 ### Installation
 
-1. **Clone the repository** (if applicable) or navigate to the project directory:
-
-   ```bash
-   cd frontend-blockchain-challenge
-   ```
-
-2. **Install dependencies**:
+1. **Install dependencies**:
 
    ```bash
    npm install
    ```
 
-3. **Set up environment variables**:
+2. **Set up environment variables**:
 
    Create a `.env.local` file in the root directory:
 
@@ -44,20 +38,20 @@ A React/Next.js application for managing ERC20 tokens (DAI and USDC) on the Sepo
    - Create a new project
    - Copy your Project ID
 
-4. **Start the development server**:
+3. **Start the development server**:
 
    ```bash
    npm run dev
    ```
 
-5. **Open your browser**:
+4. **Open your browser**:
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 📁 Project Structure
 
 ```
-frontend-blockchain-challenge/
-├── app/                    # Next.js App Router pages
+token-manager/
+├── app/                   # Next.js App Router pages
 │   ├── page.tsx           # Home page (minting & balances)
 │   └── transactions/      # Transactions page (approve/transfer & events)
 ├── components/            # React components

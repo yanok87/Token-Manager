@@ -3,16 +3,23 @@ describe("Navigation", () => {
     cy.visit("/");
   });
 
-  it("should navigate from home to transactions page", () => {
+  // Wallet-dependent test
+  it("should navigate from home to transactions page", function (this: Mocha.Context) {
+    const testContext = this;
     cy.get("body").then(($body) => {
-      if ($body.text().includes("Go to Transactions")) {
-        cy.contains("Go to Transactions").click();
-        cy.url().should("include", "/transactions");
-        cy.contains("Transactions").should("be.visible");
+      if (!$body.text().includes("Go to Transactions")) {
+        cy.log("⏭️  Skipping: Wallet not connected");
+        testContext.skip();
+        return;
       }
+
+      cy.contains("Go to Transactions").should("be.visible").click();
+      cy.url().should("include", "/transactions");
+      cy.contains("Transactions").should("be.visible");
     });
   });
 
+  // This test should ALWAYS work - Home button is always visible
   it("should navigate from transactions to home page", () => {
     cy.visit("/transactions");
     cy.contains("Home").should("be.visible");
@@ -21,15 +28,20 @@ describe("Navigation", () => {
     cy.contains("Token Manager").should("be.visible");
   });
 
-  it("should maintain page state during navigation", () => {
-    cy.visit("/");
+  // Wallet-dependent test
+  it("should maintain page state during navigation", function (this: Mocha.Context) {
+    const testContext = this;
     cy.get("body").then(($body) => {
-      if ($body.text().includes("Go to Transactions")) {
-        cy.contains("Go to Transactions").click();
-        cy.url().should("include", "/transactions");
-        cy.contains("Home").click();
-        cy.url().should("eq", Cypress.config().baseUrl + "/");
+      if (!$body.text().includes("Go to Transactions")) {
+        cy.log("⏭️  Skipping: Wallet not connected");
+        testContext.skip();
+        return;
       }
+
+      cy.contains("Go to Transactions").should("be.visible").click();
+      cy.url().should("include", "/transactions");
+      cy.contains("Home").should("be.visible").click();
+      cy.url().should("eq", Cypress.config().baseUrl + "/");
     });
   });
 });

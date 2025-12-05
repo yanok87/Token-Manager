@@ -19,6 +19,27 @@ import "./commands";
 // Alternatively you can use CommonJS syntax:
 // require('./commands')
 
+// Handle uncaught exceptions from the application
+Cypress.on("uncaught:exception", (err, runnable) => {
+  // Ignore certain errors that are expected in test environment
+  // Return false to prevent Cypress from failing the test
+  if (
+    err.message.includes("ResizeObserver loop limit exceeded") ||
+    err.message.includes("Non-Error promise rejection captured") ||
+    err.message.includes("ChunkLoadError")
+  ) {
+    return false;
+  }
+  // For syntax errors, log them but don't fail silently
+  if (err.message.includes("SyntaxError") || err.message.includes("Invalid")) {
+    console.error("Application error detected:", err.message);
+    // Return true to fail the test with the error
+    return true;
+  }
+  // Let other errors fail the test normally
+  return true;
+});
+
 // Hide fetch/XHR requests from command log
 const app = window.top;
 if (

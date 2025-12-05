@@ -32,6 +32,13 @@ declare global {
        * Check if element is visible and contains text
        */
       shouldBeVisibleWithText(text: string): Chainable<void>;
+
+      /**
+       * Check if prerequisite exists, fail test clearly if missing
+       * This ensures tests fail properly when required UI is not present
+       * @example cy.requireElement('DAI - Approve & Transfer')
+       */
+      requireElement(prerequisiteText: string, errorMessage?: string): Chainable<void>;
     }
   }
 }
@@ -60,6 +67,19 @@ Cypress.Commands.add("waitForWalletConnection", () => {
 
 Cypress.Commands.add("shouldBeVisibleWithText", (text: string) => {
   cy.contains(text).should("be.visible");
+});
+
+// Require element to exist - will fail test if not found (prevents silent passing)
+Cypress.Commands.add("requireElement", (prerequisiteText: string, errorMessage?: string) => {
+  cy.get("body", { timeout: 5000 }).should(($body) => {
+    const bodyText = $body.text();
+    if (!bodyText.includes(prerequisiteText)) {
+      throw new Error(
+        errorMessage ||
+          `Required element "${prerequisiteText}" not found. This test requires wallet connection.`,
+      );
+    }
+  });
 });
 
 export {};

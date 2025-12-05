@@ -12,7 +12,6 @@ import {
 import {
   useWriteContract,
   useWaitForTransactionReceipt,
-  useChainId,
 } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "@/context/WalletContext";
@@ -37,7 +36,6 @@ export function MintButton({ symbol, address }: MintButtonProps) {
   const [showError, setShowError] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const queryClient = useQueryClient();
-  const chainId = useChainId();
   const {
     writeContract,
     data: hash,

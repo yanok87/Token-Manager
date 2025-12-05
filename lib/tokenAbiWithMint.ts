@@ -14,12 +14,4 @@ export const tokenAbiWithMint = [
     stateMutability: "nonpayable",
     type: "function",
   },
-  // Alternative mint signature (mints to msg.sender)
-  {
-    inputs: [{ name: "amount", type: "uint256" }],
-    name: "mint",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
 ] as const;
