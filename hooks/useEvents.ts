@@ -7,7 +7,10 @@ import { useWallet } from "@/context/WalletContext";
 import { type TokenSymbol, TOKEN_ADDRESSES } from "@/lib/tokens";
 import { formatTokenAmount, formatDisplayAmount } from "@/utils/format";
 
-type EventType = "Transfer" | "Approval";
+// Zero address used for mint events (ERC20 standard)
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as `0x${string}`;
+
+type EventType = "Transfer" | "Approval" | "Mint";
 
 export type EventData = {
   type: EventType;
@@ -127,8 +130,13 @@ export function useEvents() {
                 log.args.to &&
                 log.args.value
               ) {
+                // Detect mint events: Transfer from zero address to user
+                const isMint =
+                  log.args.from.toLowerCase() === ZERO_ADDRESS.toLowerCase() &&
+                  log.args.to.toLowerCase() === address.toLowerCase();
+
                 allEvents.push({
-                  type: "Transfer",
+                  type: isMint ? "Mint" : "Transfer",
                   token: tokenSymbol,
                   amount: formatDisplayAmount(
                     formatTokenAmount(log.args.value, tokenSymbol),

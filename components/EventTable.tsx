@@ -49,7 +49,7 @@ export function EventTable() {
       >
         <Box>
           <Typography variant="h6" fontWeight={600}>
-            Recent Transfer and Approval events (last ~1.5 hours)
+            Recent Transfer, Approval, and Mint events (last ~1.5 hours)
           </Typography>
         </Box>
       </Box>
@@ -88,7 +88,9 @@ export function EventTable() {
                     const eventColor =
                       event.type === "Transfer"
                         ? colors.events.transfer
-                        : colors.events.approval;
+                        : event.type === "Approval"
+                          ? colors.events.approval
+                          : colors.events.mint;
                     return (
                       <TableRow
                         key={`${event.transactionHash}-${index}`}

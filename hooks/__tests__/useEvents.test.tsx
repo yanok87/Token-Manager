@@ -172,6 +172,53 @@ describe("useEvents", () => {
     }
   });
 
+  it("should detect Mint events from zero address", async () => {
+    const currentBlock = BigInt(10000);
+    const zeroAddress = "0x0000000000000000000000000000000000000000" as `0x${string}`;
+    const mockMintLog = {
+      eventName: "Transfer" as const,
+      args: {
+        from: zeroAddress,
+        to: mockAddress,
+        value: BigInt("1000000000000000000000"), // 1000 DAI (18 decimals)
+      },
+      transactionHash:
+        "0x3333333333333333333333333333333333333333333333333333333333333333" as `0x${string}`,
+      blockNumber: BigInt(1000),
+    };
+
+    mockPublicClient.getBlockNumber.mockResolvedValue(currentBlock);
+    mockPublicClient.getLogs.mockResolvedValue([
+      {
+        address: "0xDAI_ADDRESS" as `0x${string}`,
+        topics: [],
+        data: "0x",
+        blockNumber: BigInt(1000),
+        transactionHash:
+          "0x3333333333333333333333333333333333333333333333333333333333333333" as `0x${string}`,
+      },
+    ] as any);
+    mockParseEventLogs.mockReturnValue([mockMintLog] as any);
+    mockPublicClient.getBlock.mockResolvedValue({
+      timestamp: BigInt(1234567890),
+    } as any);
+
+    const wrapper = createTestWrapper();
+    const { result } = renderHook(() => useEvents(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.events.length).toBeGreaterThan(0);
+    const mintEvent = result.current.events.find((e) => e.type === "Mint");
+    expect(mintEvent).toBeDefined();
+    if (mintEvent) {
+      expect(mintEvent.from.toLowerCase()).toBe(zeroAddress.toLowerCase());
+      expect(mintEvent.to.toLowerCase()).toBe(mockAddress.toLowerCase());
+    }
+  });
+
   it("should filter Approval events by user address", async () => {
     const currentBlock = BigInt(10000);
     const mockApprovalLog = {

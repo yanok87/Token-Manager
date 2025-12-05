@@ -74,6 +74,18 @@ describe("EventTable", () => {
     timestamp: 1234567891,
   } as EventData;
 
+  const mockMintEvent: EventData = {
+    type: "Mint",
+    token: "DAI",
+    amount: "1000",
+    from: "0x0000000000000000000000000000000000000000",
+    to: "0x1234567890123456789012345678901234567890",
+    transactionHash:
+      "0x3333333333333333333333333333333333333333333333333333333333333333" as `0x${string}`,
+    blockNumber: BigInt(1002),
+    timestamp: 1234567892,
+  } as EventData;
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -164,6 +176,19 @@ describe("EventTable", () => {
     // "Approval" appears in title too, so check that we have at least one in the table
     const approvalTexts = screen.getAllByText(/Approval/i);
     expect(approvalTexts.length).toBeGreaterThan(0);
+  });
+
+  it("should display Mint events with correct color", () => {
+    mockUseEvents.mockReturnValue(
+      createMockEventsReturn([mockMintEvent], false, null),
+    );
+
+    const wrapper = createTestWrapper();
+    render(<EventTable />, { wrapper });
+
+    // "Mint" appears in title too, so check that we have at least one in the table
+    const mintTexts = screen.getAllByText(/Mint/i);
+    expect(mintTexts.length).toBeGreaterThan(0);
   });
 
   it("should display formatted addresses", () => {
@@ -385,7 +410,7 @@ describe("EventTable", () => {
 
     expect(
       screen.getByText(
-        /Recent Transfer and Approval events \(last ~1.5 hours\)/i,
+        /Recent Transfer, Approval, and Mint events \(last ~1.5 hours\)/i,
       ),
     ).toBeInTheDocument();
   });

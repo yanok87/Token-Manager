@@ -44,5 +44,6 @@ export const colors = {
   events: {
     transfer: "#FFB347", // primary orange for Transfer events
     approval: "#B07CFF", // secondary purple for Approval events
+    mint: "#4CAF50", // green for Mint events
   },
 };
