@@ -47,8 +47,9 @@ export function getErrorMessage(
   }
 
   if (
-    error.message.includes("insufficient") ||
-    error.message.includes("balance")
+    error.message &&
+    (error.message.includes("insufficient") ||
+      error.message.includes("balance"))
   ) {
     return (
       customMessages.insufficientFunds ||
