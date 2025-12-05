@@ -9,24 +9,17 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useReadContract,
-} from "wagmi";
+import { useReadContract } from "wagmi";
 import { erc20Abi } from "viem";
-import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "@/context/WalletContext";
 import { getTokenAddress, type TokenSymbol } from "@/lib/tokens";
-import {
-  parseTokenAmount,
-  formatTokenAmount,
-  formatDisplayAmount,
-} from "@/utils/format";
+import { formatTokenAmount, formatDisplayAmount } from "@/utils/format";
 import { colors } from "@/theme/colors";
 import { getErrorMessage } from "@/utils/transaction";
 import { AnimatedText } from "@/components/AnimatedText";
 import { EtherscanLink } from "@/components/EtherscanLink";
+import { useApproveToken } from "@/hooks/useApproveToken";
+import { useTransferToken } from "@/hooks/useTransferToken";
 
 type ApproveTransferProps = {
   symbol: TokenSymbol;
@@ -39,8 +32,6 @@ export function ApproveTransferItem({ symbol, address }: ApproveTransferProps) {
   const [recipient, setRecipient] = useState("");
   const [showError, setShowError] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [customErrorMessage, setCustomErrorMessage] = useState("");
-  const queryClient = useQueryClient();
 
   // Get token balance
   const { data: balance, refetch: refetchBalance } = useReadContract({
@@ -64,182 +55,83 @@ export function ApproveTransferItem({ symbol, address }: ApproveTransferProps) {
     },
   });
 
-  // Approve transaction
+  // Use approve hook
   const {
-    writeContract: writeApprove,
-    data: approveHash,
+    approve,
+    isLoading: isApproveLoading,
     isPending: isApproving,
+    isConfirming: isConfirmingApprove,
+    isSuccess: isApproveSuccess,
     error: approveError,
+    hash: approveHash,
     reset: resetApprove,
-  } = useWriteContract();
+  } = useApproveToken({
+    symbol,
+    onRefetchAllowance: refetchAllowance,
+  });
 
-  const { isLoading: isConfirmingApprove, isSuccess: isApproveSuccess } =
-    useWaitForTransactionReceipt({
-      hash: approveHash,
-    });
-
-  // Transfer transaction
+  // Use transfer hook
   const {
-    writeContract: writeTransfer,
-    data: transferHash,
+    transfer,
+    isLoading: isTransferLoading,
     isPending: isTransferring,
+    isConfirming: isConfirmingTransfer,
+    isSuccess: isTransferSuccess,
     error: transferError,
+    hash: transferHash,
     reset: resetTransfer,
-  } = useWriteContract();
+  } = useTransferToken({
+    symbol,
+    balance,
+    onRefetchBalance: refetchBalance,
+  });
 
-  const { isLoading: isConfirmingTransfer, isSuccess: isTransferSuccess } =
-    useWaitForTransactionReceipt({
-      hash: transferHash,
-    });
+  const isLoading = isApproveLoading || isTransferLoading;
+  const currentHash = approveHash || transferHash;
+  const isApprove = !!approveHash;
+  const currentError = approveError || transferError;
 
-  // Handle approve success
+  // Handle success states
   useEffect(() => {
-    if (isApproveSuccess) {
+    if (isApproveSuccess || isTransferSuccess) {
       setShowSuccess(true);
       setShowError(false);
-      // Refetch allowance after approval if spender is valid
-      if (isValidSpender && refetchAllowance) {
-        refetchAllowance();
-      }
-      queryClient.invalidateQueries();
     }
-  }, [isApproveSuccess, queryClient, isValidSpender, refetchAllowance]);
+  }, [isApproveSuccess, isTransferSuccess]);
 
-  // Handle transfer success
+  // Handle error states
   useEffect(() => {
-    if (isTransferSuccess) {
-      setShowSuccess(true);
-      setShowError(false);
-      // Refetch balance and invalidate all queries
-      refetchBalance();
-      queryClient.invalidateQueries();
-    }
-  }, [isTransferSuccess, queryClient, refetchBalance]);
-
-  // Handle errors
-  useEffect(() => {
-    if (approveError) {
+    if (currentError) {
       setShowError(true);
       setShowSuccess(false);
-      setCustomErrorMessage(approveError.message);
     }
-  }, [approveError]);
-
-  useEffect(() => {
-    if (transferError) {
-      setShowError(true);
-      setShowSuccess(false);
-      setCustomErrorMessage(transferError.message);
-    }
-  }, [transferError]);
+  }, [currentError]);
 
   // Reset alerts when starting new transaction
   useEffect(() => {
-    if (isApproving || isTransferring) {
+    if (isApproveLoading || isTransferLoading) {
       setShowError(false);
       setShowSuccess(false);
     }
-  }, [isApproving, isTransferring]);
+  }, [isApproveLoading, isTransferLoading]);
 
-  // Get error message (combine transaction errors with custom validation errors)
-  const error = approveError || transferError;
-  const transactionErrorMessage = getErrorMessage(error, {
+  // Get formatted error message
+  const transactionErrorMessage = getErrorMessage(currentError, {
     customMessages: {
       userRejection:
         "Transaction cancelled. You cancelled the request in your wallet.",
       insufficientFunds: "Not enough funds. Please check your balance.",
     },
   });
-  const errorMessage = transactionErrorMessage || customErrorMessage;
+  const errorMessage = transactionErrorMessage || currentError?.message;
 
-  const handleApprove = () => {
-    if (!amount || !spender) {
-      setShowError(true);
-      setCustomErrorMessage("Please enter amount and spender address");
-      return;
-    }
-
-    try {
-      const amountBigInt = parseTokenAmount(amount, symbol);
-      const spenderAddress = spender as `0x${string}`;
-
-      // Validate spender address
-      if (!spenderAddress.startsWith("0x") || spenderAddress.length !== 42) {
-        setShowError(true);
-        setCustomErrorMessage("Invalid spender address");
-        return;
-      }
-
-      writeApprove({
-        address: getTokenAddress(symbol),
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [spenderAddress, amountBigInt],
-      });
-    } catch (error) {
-      setShowError(true);
-      setCustomErrorMessage(
-        error instanceof Error ? error.message : "Invalid amount",
-      );
-    }
+  const handleApprove = async () => {
+    await approve(amount, spender);
   };
 
-  const handleTransfer = () => {
-    if (!amount || !recipient) {
-      setShowError(true);
-      setCustomErrorMessage("Please enter amount and recipient address");
-      return;
-    }
-
-    try {
-      const amountBigInt = parseTokenAmount(amount, symbol);
-      const recipientAddress = recipient as `0x${string}`;
-
-      // Validate that transfer amount is greater than 0
-      if (amountBigInt <= BigInt(0)) {
-        setShowError(true);
-        setCustomErrorMessage("Transfer amount must be greater than 0");
-        return;
-      }
-
-      // Validate recipient address
-      if (
-        !recipientAddress.startsWith("0x") ||
-        recipientAddress.length !== 42
-      ) {
-        setShowError(true);
-        setCustomErrorMessage("Invalid recipient address");
-        return;
-      }
-
-      // Check balance
-      if (balance && amountBigInt > balance) {
-        setShowError(true);
-        setCustomErrorMessage("Not enough funds");
-        return;
-      }
-
-      writeTransfer({
-        address: getTokenAddress(symbol),
-        abi: erc20Abi,
-        functionName: "transfer",
-        args: [recipientAddress, amountBigInt],
-      });
-    } catch (error) {
-      setShowError(true);
-      setCustomErrorMessage(
-        error instanceof Error ? error.message : "Invalid amount",
-      );
-    }
+  const handleTransfer = async () => {
+    await transfer(amount, recipient);
   };
-
-  const isLoading =
-    isApproving ||
-    isConfirmingApprove ||
-    isTransferring ||
-    isConfirmingTransfer;
-  const currentHash = approveHash || transferHash;
-  const isApprove = !!approveHash;
 
   const formattedBalance = balance
     ? formatDisplayAmount(formatTokenAmount(balance, symbol))
@@ -374,7 +266,7 @@ export function ApproveTransferItem({ symbol, address }: ApproveTransferProps) {
           </Box>
         </Button>
 
-        {showError && (
+        {showError && errorMessage && (
           <Alert
             severity="error"
             sx={{
